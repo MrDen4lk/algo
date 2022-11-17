@@ -26,7 +26,7 @@ void dijkstra(int st) {
         for (auto v : graph[st]) {
             if (dist[v.first] > dist[st] + v.second) {
                 pred[v.first] = st;
-                check.erase({dist[v.first], v.second});
+                check.erase({dist[v.first], v.first});
                 dist[v.first] = dist[st] + v.second;
                 check.insert({dist[v.first], v.first});
             }
