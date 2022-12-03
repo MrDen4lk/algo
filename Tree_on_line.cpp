@@ -1,3 +1,8 @@
+#pragma GCC optimize("Ofast,no-stack-protector")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -9,101 +14,92 @@ typedef double dbl;
 #define rall(a) a.rbeging(), a.rend()
 
 struct for_tree {
-    ll sum, add;
-    bool upd;
+    int l = -1, r = -1;
+    ll up = 0, mx = 0, sz = 0;
 };
 
-const ll sz = (1 << 17), neutral = 0;
-int n;
-for_tree tree[2 * sz];
+int n, m, ask_left, ask_right, ask_add;
+char ask;
+vector<ll> t;
+vector<for_tree> tree;
 
-void Build(const vector<ll>& t) {
-    for (int i = sz; i < 2 * sz; i++) {
-        if (i - sz < n) {
-            tree[i] = {t[i - sz], 0, false};
-        } else {
-            tree[i] = {neutral, 0, false};
-        }
+void build(vector<ll>& t, int v, int l, int r) {
+    tree[v].r = r;
+    tree[v].l = l;
+    tree[v].sz = r - l + 1;
+    if (l == r) {
+        tree[v].mx = t[l];
+        return;
     }
-    for (int i = sz - 1; i > 0; i--) {
-        tree[i] = {tree[i * 2].sum + tree[i * 2 + 1].sum, 0, false};
-    }
+    int m = (l + r) / 2;
+    build(t, 2 * v, l, m);
+    build(t, 2 * v + 1, min(m + 1, r), r);
+    tree[v].mx = max(tree[2 * v].mx, tree[2 * v + 1].mx);
 }
 
 void push(int v) {
-    if (tree[v].add == neutral) {
-        return;
+    if (2 * v < 4 * n && tree[2 * v].l != - 1) {
+        tree[2 * v].up += tree[v].up;
     }
-    tree[2 * v].add = tree[v].add;
-    tree[2 * v + 1].add = tree[v].add;
-    tree[2 * v].upd = true;
-    tree[2 * v + 1].upd = true;
-    tree[v].upd = false;
-    tree[v].add = neutral;
+    if (2 * v + 1 < 4 * n && tree[2 * v + 1].l != -1) {
+        tree[2 * v + 1].up += tree[v].up;
+    }
+    tree[v].mx += tree[v].up;
+    tree[v].up = 0;
 }
 
-void UpdateTop(int v, int x) {
-    if (tree[v].upd) {
-        tree[v].sum += tree[v].add * x;
-        tree[v].upd = false;
-    }
-}
-
-void UpdateLine(int v, int tl, int tr, int l, int r, int add) {
-    if (l > r) {
-        return;
-    }
-    if (tr == r && tl == l) {
-        tree[v].add = add;
-        tree[v].upd = true;
-        return;
-    }
+void update(int l, int r, ll add, int v = 1) {
     push(v);
-    int tm = (tl + tr) / 2;
-    UpdateLine(v * 2, tl, tm, l, min(r, tm), add);
-    UpdateLine(v * 2 + 1, tm + 1, tr, max(tm + 1, l), r, add);
-    tm = (tr - tl + 1) / 2;
-    UpdateTop(v * 2, tm);
-    UpdateTop(v * 2 + 1, tm);
-    tree[v].sum = tree[v * 2].sum + tree[v * 2 + 1].sum;
-    tree[v].upd = false;
+    if (tree[v].l == l && tree[v].r == r) {
+        tree[v].up += add;
+        push(v);
+    } else if (l <= r) {
+        int m = (tree[v].l + tree[v].r) / 2;
+        if (2 * v < 4 * n) {
+            update(l, min(m, r), add, 2 * v);
+        }
+        if (2 * v + 1 < 4 * n) {
+            update(max(m + 1, l), r, add, 2 * v + 1);
+        }
+        if (2 * v + 1 < 4 * n) {
+            tree[v].mx = max(tree[2 * v].mx, tree[2 * v + 1].mx);
+        }
+    }
 }
 
-ll GetSum(int v, int tl, int tr, int l, int r) {
-    if (l > r) {
-        return neutral;
-    }
-    if (tl == l && tr == r) {
-        UpdateTop(v, tr - tl + 1);
-        return tree[v].sum;
-    }
-    UpdateTop(v, tr - tl + 1);
+ll get_max(int l, int r, int v = 1) {
     push(v);
-    int tm = (tl + tr) / 2;
-    return GetSum(2 * v, tl, tm, l, min(r, tm)) + GetSum(v * 2 + 1, tm + 1, tr, max(tm + 1, l), r);
-}
-
-void Print() {
-    for (int i = 1; i <= n; i++) {
-        cout << GetSum(1, 1, sz, i, i) << ' ';
+    if (tree[v].l == l && tree[v].r == r) {
+        return tree[v].mx;
+    } else if (l <= r) {
+        int m = (tree[v].l + tree[v].r) / 2;
+        return max(get_max(l, min(m, r), 2 * v), get_max(max(m + 1, l), r, 2 * v + 1));
     }
-    cout << '\n';
+    return -1;
 }
 
-int main () {
+int main() {
     ios_base::sync_with_stdio(false);
-    cin.tie(), cout.tie();
+    cin.tie(NULL), cout.tie(NULL);
 
     cin >> n;
-    vector<ll>a(n);
-    for (int i = 0; i < n; i++) {
-        cin >> a[i];
+    t.resize(n);
+    tree.resize(4 * n);
+    for (auto& val : t) {
+        cin >> val;
     }
-    Build(a);
-    cout << GetSum(1, 1, sz, 1, n) << '\n';
-    UpdateLine(1, 1, sz, 1, n, 10);
-    Print();
-    cout << GetSum(1, 1, sz, 1, n);
+    build(t, 1, 0, n - 1);
+    cin >> m;
+
+    while (m--) {
+        cin >> ask >> ask_left >> ask_right;
+        if (ask == 'a') {
+            cin >> ask_add;
+            update(--ask_left, --ask_right, ask_add);
+        } else {
+            cout << get_max(--ask_left, --ask_right) << ' ';
+        }
+    }
 
     return 0;
 }
