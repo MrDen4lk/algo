@@ -9,57 +9,59 @@ typedef double dbl;
 #define rall(a) a.rbeging(), a.rend()
 
 struct for_tree {
-    ll sum;
+    int val = 0;
 };
 
-const int sz = (1 << 17), neutral = 0;
+const int sz = (1 << 17);
 int n;
-for_tree tree[2 * sz];
+for_tree tree[4 * sz];
 
-void Build(vector<ll>& t) {
-    for (int i = sz; i < sz * 2; i++) {
-        if (i - sz < n) {
-            tree[i].sum = {t[i - sz]};
+void build(vector<int>& t, int v, int l, int r) {
+    if (l == r) {
+        tree[v].val = t[l];
+    } else {
+        int m = (l + r) / 2;
+        build(t, 2 * v, l, m);
+        build(t, 2 * v + 1, m + 1, r);
+        tree[v].val = tree[2 * v].val + tree[2 * v + 1].val;
+    }
+}
+
+void update(int v, int l, int r, int pos, int val) {
+    if (l == r) {
+        tree[v].val = val;
+    } else {
+        int m = (l + r) / 2;
+        if (pos <= m) {
+            update(2 * v, l, m, pos, val);
         } else {
-            tree[i].sum = {neutral};
+            update(2 * v + 1, m + 1, r, pos, val);
         }
-    }
-    for (int i = sz - 1; i > 0; i--) {
-        tree[i].sum = tree[2 * i].sum + tree[2 * i + 1].sum;
+        tree[v].val = tree[2 * v].val + tree[2 * v + 1].val;
     }
 }
 
-void Update(int ind, int val) {
-    ind -= sz;
-    tree[ind].sum = val;
-    while (ind > 1) {
-        ind /= 2;
-        tree[ind].sum = tree[2 * ind].sum + tree[2 * ind + 1].sum;
-    }
-}
-
-ll GetSum(int v, int tl, int tr, int l, int r) {
+int get_sum(int v, int tl, int tr, int l, int r) {
     if (l > r) {
-        return neutral;
+        return 0;
     }
     if (tl == l && tr == r) {
-        return tree[v].sum;
+        return tree[v].val;
     }
     int tm = (tl + tr) / 2;
-    return GetSum(2 * v, tl, tm, l, min(r, tm)) + GetSum(2 * v + 1, tm + 1, tr, max(l, tm + 1), r);
+    return get_sum(2 * v, tl, tm, l, min(tm, r)) + get_sum(2 * v + 1, tm + 1, tr, max(l, tm + 1), r);
 }
-
 int main () {
     ios_base::sync_with_stdio(false);
     cin.tie(), cout.tie();
 
     cin >> n;
-    vector<ll> a(n);
+    vector<int> a(n);
     for (size_t i = 0; i < n; i++) {
         cin >> a[i];
     }
-    Build(a);
-    cout << GetSum(1, 1, sz, 1, n);
+    build(a);
+    cout << get_sum(1, 0, n - 1, 0, n - 1);
 
     return 0;
 }
