@@ -27,7 +27,7 @@ void find_points(int v, int pred) {
         } else {
             find_points(i, v);
             dp[v] = min(dp[i], dp[v]);
-            if (dp[i] > deep[v] && pred != -1) {
+            if (dp[i] >= deep[v] && pred != -1) {
                 points.insert(v);
             }
             child++;
